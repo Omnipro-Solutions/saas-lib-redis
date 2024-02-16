@@ -6,8 +6,9 @@ on:
       - master
 
 jobs:
-  deploy-patch:
+  deploy:
     runs-on: ubuntu-latest
+    environment: master
     steps:
       - name: Checkout branch
         uses: actions/checkout@v2
@@ -20,7 +21,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip build
-          pip install -r requirements.txt
+          pip install -r requirements.txt --extra-index-url https://pypi.omni.pro/root/pypi/+simple/
 
       - name: Get next version
         id: generate_release_tag
@@ -61,4 +62,5 @@ jobs:
       - name: Publish package to Custom PYPI
         run: |
           pip install twine
-          twine upload --repository-url https://pypi.omni.pro/ -u ${{ secrets.DEVPI_USER }} -p ${{ secrets.DEVPI_PASSWORD }} dist/*
+          twine upload --repository-url https://pypi.omni.pro/root/omni-pro-redis/ -u ${{ secrets.DEVPI_USER }} -p ${{ secrets.DEVPI_PASSWORD }} dist/*
+
