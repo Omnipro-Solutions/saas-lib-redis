@@ -1,4 +1,5 @@
 hiredis==2.2.3
 redis==4.6.0
 fakeredis[json]==2.17.0
+omni-pro-base
 #omni-pro
