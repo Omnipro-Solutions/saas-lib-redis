@@ -17,7 +17,7 @@ INSTALL_REQUIRES = [
     "hiredis>=2.2.0,<3.0.0",
     "redis>=4.0.0,<5.0.0",
     "fakeredis[json]>=2.0.0,<3.0.0",
-    "omni-pro-base>=0.0.0,<=1.0.0",
+    "omni-pro-base>=0.0.0,<=2.0.0",
 ]  # with open(HERE / "requirements.txt") as f:
 #     INSTALL_REQUIRES = f.read().splitlines()
 
