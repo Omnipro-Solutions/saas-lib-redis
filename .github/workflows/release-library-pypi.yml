@@ -18,6 +18,10 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip build
+
       - name: Get next version
         id: generate_release_tag
         uses: phish108/autotag-action@1.1.53
