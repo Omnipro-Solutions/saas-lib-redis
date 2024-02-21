@@ -2,7 +2,7 @@ import json
 
 import fakeredis
 import redis
-from omni.pro.exceptions import NotFoundError
+from omni_pro_base.exceptions import NotFoundError
 from omni_pro_base.util import nested
 
 
