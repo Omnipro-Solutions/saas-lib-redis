@@ -2,6 +2,7 @@ import json
 
 import fakeredis
 import redis
+from omni.pro.exceptions import NotFoundError
 from omni_pro_base.util import nested
 
 
@@ -50,7 +51,10 @@ class RedisManager(object):
 
     def get_json(self, key, *args, no_escape=False):
         with self.get_connection() as rc:
-            return rc.json().get(key, *args, no_escape=no_escape)
+            result = rc.json().get(key, *args, no_escape=no_escape)
+            if result is None:
+                raise NotFoundError(f"Key {key} not found")
+            return result
 
     def get_resource_config(self, service_id: str, tenant_code: str) -> dict:
         config = self.get_json(tenant_code)
