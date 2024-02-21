@@ -138,6 +138,14 @@ class RedisManager(object):
             "port": nested(config, "port"),
         }
 
+    def get_airflow_config(self, service_id, tennat):
+        config = self.get_resource_config(service_id, tennat)
+        return {
+            "host": nested(config, "airflow_host"),
+            "username": nested(config, "username"),
+            "password": nested(config, "password"),
+        }
+
     def get_load_balancer_name(self, service_id, tennat):
         config = self.get_load_balancer_config(service_id, tennat)
         return f"{config.get('host')}:{config.get('port')}"
