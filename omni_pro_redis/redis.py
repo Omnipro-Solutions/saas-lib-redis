@@ -10,22 +10,18 @@ logger = logging.getLogger(__name__)
 
 class RedisConnection:
     def __init__(self, host: str, port: int, db: int, redis_ssl: bool) -> None:
-        print(f"RedisConnection: {host}:{port}/{db}")
         self.host = host
         self.port = int(port)
         self.db = db
         self.redis_ssl = redis_ssl
 
     def __enter__(self) -> redis.StrictRedis:
-        print(f"RedisConnection __enter__")
         self.redis_client = redis.StrictRedis(
             host=self.host, port=self.port, db=self.db, decode_responses=True, ssl=self.redis_ssl
         )
-        print(f"RedisConnection __enter__ PING: {self.redis_client.ping()}")
         return self.redis_client
 
     def __exit__(self, exc_type, exc_value, traceback) -> None:
-        print(f"RedisConnection __exit__")
         self.redis_client.close()
 
 
@@ -35,12 +31,7 @@ class RedisManager(object):
         self.port = int(port)
         self.db = db
         self.redis_ssl = redis_ssl
-        print(f"RedisManager: {self.host}:{self.port}/{self.db}")
         self._connection = RedisConnection(host=self.host, port=self.port, db=self.db, redis_ssl=self.redis_ssl)
-
-        with self._connection as rc:
-            print(f"RedisManager")
-            print(f"Redis PING: {rc.ping()}")
 
     def get_connection(self) -> RedisConnection:
         # if Config.TESTING:
@@ -69,7 +60,6 @@ class RedisManager(object):
 
     def get_resource_config(self, service_id: str, tenant_code: str) -> dict:
         config = self.get_json(tenant_code)
-        # print(f"Redis config", extra={"deb_config": config})
         return {
             **nested(config, f"resources.{service_id}", {}),
             **nested(config, "aws", {}),
@@ -132,9 +122,7 @@ class RedisManager(object):
 
     def get_tenant_codes(self, pattern="*", exlcudes_keys=["SETTINGS"]) -> list:
         with self.get_connection() as rc:
-            print(f"RedisManager get_tenant_codes")
             if self.redis_ssl is False:
-                print(f"RedisManager redis_ssl is False")
                 return [key for key in rc.keys(pattern=pattern) if key not in exlcudes_keys]
             cursor = "0"
             keys = []
