@@ -127,9 +127,10 @@ class RedisManager(object):
 
     def get_tenant_codes(self, pattern="*", exlcudes_keys=["SETTINGS"]) -> list:
         with self.get_connection() as rc:
+            logger.info(f"RedisManager get_tenant_codes")
             if self.redis_ssl is False:
+                logger.info(f"RedisManager redis_ssl is False")
                 return [key for key in rc.keys(pattern=pattern) if key not in exlcudes_keys]
-
             cursor = "0"
             keys = []
             while cursor != 0:
