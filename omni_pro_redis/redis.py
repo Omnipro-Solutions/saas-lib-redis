@@ -1,9 +1,11 @@
 import json
-
+import logging
 import fakeredis
 import redis
 from omni_pro_base.exceptions import NotFoundError
 from omni_pro_base.util import nested
+
+logger = logging.getLogger(__name__)
 
 
 class RedisConnection:
@@ -30,6 +32,10 @@ class RedisManager(object):
         self.db = db
         self.redis_ssl = redis_ssl
         self._connection = RedisConnection(host=self.host, port=self.port, db=self.db, redis_ssl=self.redis_ssl)
+        logger.info(f"RedisManager: {self.host}:{self.port}/{self.db}")
+        with self._connection as rc:
+            logger.info(f"RedisManager")
+            logger.info(f"Redis PING: {rc.ping()}")
 
     def get_connection(self) -> RedisConnection:
         # if Config.TESTING:
