@@ -10,18 +10,22 @@ logger = logging.getLogger(__name__)
 
 class RedisConnection:
     def __init__(self, host: str, port: int, db: int, redis_ssl: bool) -> None:
+        logger.info(f"RedisConnection: {host}:{port}/{db}")
         self.host = host
         self.port = int(port)
         self.db = db
         self.redis_ssl = redis_ssl
 
     def __enter__(self) -> redis.StrictRedis:
+        logger.info(f"RedisConnection __enter__")
         self.redis_client = redis.StrictRedis(
             host=self.host, port=self.port, db=self.db, decode_responses=True, ssl=self.redis_ssl
         )
+        logger.info(f"RedisConnection __enter__ PING: {self.redis_client.ping()}")
         return self.redis_client
 
     def __exit__(self, exc_type, exc_value, traceback) -> None:
+        logger.info(f"RedisConnection __exit__")
         self.redis_client.close()
 
 
@@ -31,8 +35,9 @@ class RedisManager(object):
         self.port = int(port)
         self.db = db
         self.redis_ssl = redis_ssl
-        self._connection = RedisConnection(host=self.host, port=self.port, db=self.db, redis_ssl=self.redis_ssl)
         logger.info(f"RedisManager: {self.host}:{self.port}/{self.db}")
+        self._connection = RedisConnection(host=self.host, port=self.port, db=self.db, redis_ssl=self.redis_ssl)
+
         with self._connection as rc:
             logger.info(f"RedisManager")
             logger.info(f"Redis PING: {rc.ping()}")
