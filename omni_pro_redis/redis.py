@@ -1,9 +1,12 @@
 import json
-
+import logging
 import fakeredis
 import redis
 from omni_pro_base.config import Config
+from omni_pro_base.exceptions import NotFoundError
 from omni_pro_base.util import nested
+
+logger = logging.getLogger(__name__)
 
 
 class RedisConnection:
@@ -51,11 +54,13 @@ class RedisManager(object):
 
     def get_json(self, key, *args, no_escape=False):
         with self.get_connection() as rc:
-            return rc.json().get(key, *args, no_escape=no_escape)
+            result = rc.json().get(key, *args, no_escape=no_escape)
+            if result is None:
+                raise NotFoundError(f"Key {key} not found")
+            return result
 
     def get_resource_config(self, service_id: str, tenant_code: str) -> dict:
         config = self.get_json(tenant_code)
-        # logger.info(f"Redis config", extra={"deb_config": config})
         return {
             **nested(config, f"resources.{service_id}", {}),
             **nested(config, "aws", {}),
@@ -120,7 +125,6 @@ class RedisManager(object):
         with self.get_connection() as rc:
             if self.redis_ssl is False:
                 return [key for key in rc.keys(pattern=pattern) if key not in exlcudes_keys]
-
             cursor = "0"
             keys = []
             while cursor != 0:
