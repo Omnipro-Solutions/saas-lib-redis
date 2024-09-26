@@ -1,5 +1,6 @@
 import json
 import logging
+
 import fakeredis
 import redis
 from omni_pro_base.config import Config
@@ -223,3 +224,28 @@ class RedisCache(object):
             if result is None:
                 return None
             return result
+
+    def get_keys_with_prefix(self, prefix: str) -> list:
+        """
+        Retrieve all keys from Redis that match a given prefix and their associated data.
+        This method uses the SCAN command to efficiently iterate through the keys in the Redis database
+        that match the specified prefix. For each key found, it retrieves the associated data using the
+        JSON.GET command and appends it to the result list if the data is not None.
+        Args:
+            prefix (str): The prefix to match keys against.
+        Returns:
+            list: A list of dictionaries where each dictionary contains a key and its associated data.
+        """
+
+        keys_with_data = []
+        with self.get_connection() as rc:
+            # Utilizamos SCAN para obtener las keys de forma eficiente
+            cursor = "0"
+            while cursor != 0:
+                cursor, keys = rc.scan(cursor=cursor, match=f"{prefix}*")
+                for key in keys:
+                    # Obtener los datos asociados a cada key
+                    data = rc.json().get(key)
+                    if data is not None:
+                        keys_with_data.append({key: data})
+        return keys_with_data
