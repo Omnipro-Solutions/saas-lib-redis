@@ -241,7 +241,7 @@ class RedisCache(object):
         with self.get_connection() as rc:
             # Utilizamos SCAN para obtener las keys de forma eficiente
             cursor = "0"
-            while cursor != 0:
+            while cursor != "0":
                 cursor, keys = rc.scan(cursor=cursor, match=f"{prefix}*")
                 for key in keys:
                     # Obtener los datos asociados a cada key
