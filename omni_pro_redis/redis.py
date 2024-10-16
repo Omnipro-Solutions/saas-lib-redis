@@ -236,7 +236,6 @@ class RedisCache(object):
         Returns:
             list: A list of dictionaries where each dictionary contains a key and its associated data.
         """
-
         keys_with_data = []
         with self.get_connection() as rc:
             # Utilizamos SCAN para obtener las keys de forma eficiente
@@ -249,3 +248,27 @@ class RedisCache(object):
                     if data is not None:
                         keys_with_data.append({key: data})
         return keys_with_data
+
+
+class RedisUsers(object):
+    def __init__(self, host: str, port: int, db: int, ssl: bool) -> None:
+        self.host = host
+        self.port = int(port)
+        self.db = db
+        self.redis_ssl = ssl
+        self._connection = RedisConnection(host=self.host, port=self.port, db=self.db, redis_ssl=self.redis_ssl)
+
+    def get_connection(self) -> RedisConnection:
+        return self._connection
+
+    def set_connection(self, connection: RedisConnection) -> None:
+        self._connection = connection
+
+    def get_set(self, key: str):
+        with self.get_connection() as rc:
+            return rc.smembers(key)
+
+    def set_set(self, key: str, *members):
+        with self.get_connection() as rc:
+            rc.delete(key)
+            return rc.sadd(key, *members)
