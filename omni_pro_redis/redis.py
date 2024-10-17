@@ -137,7 +137,7 @@ class RedisManager(object):
 
     def get_tenant_codes(self, pattern="*", exlcudes_keys=["SETTINGS"]) -> list:
         with self.get_connection() as rc:
-            if self.redis_ssl is False:
+            if self._connection.redis_ssl is False:
                 return [key for key in rc.keys(pattern=pattern) if key not in exlcudes_keys]
             cursor = "0"
             keys = []
@@ -246,6 +246,10 @@ class RedisManager(object):
     def get_hash(self, name: str, key: str):
         with self.get_connection() as rc:
             return rc.hget(name, key)
+
+    def get_multi_hash(self, name: str, keys: list, *args):
+        with self.get_connection() as rc:
+            return rc.hmget(name, keys, *args)
 
 
 class FakeRedisServer:
