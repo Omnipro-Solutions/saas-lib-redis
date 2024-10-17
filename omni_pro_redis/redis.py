@@ -251,6 +251,10 @@ class RedisManager(object):
         with self.get_connection() as rc:
             return rc.hmget(name, keys, *args)
 
+    def delete_hash(self, name: str):
+        with self.get_connection() as rc:
+            return rc.delete(name)
+
 
 class FakeRedisServer:
     _instance = None
