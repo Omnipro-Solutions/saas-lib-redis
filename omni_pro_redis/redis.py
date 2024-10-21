@@ -1,5 +1,6 @@
 import json
 import logging
+from contextlib import contextmanager
 
 import fakeredis
 import redis
@@ -16,33 +17,45 @@ class RedisConnection:
         self.port = int(port)
         self.db = db
         self.redis_ssl = redis_ssl
+        self.redis_client: redis.StrictRedis = None
 
     def __enter__(self) -> redis.StrictRedis:
-        self.redis_client = redis.StrictRedis(
-            host=self.host, port=self.port, db=self.db, decode_responses=True, ssl=self.redis_ssl
-        )
+        if not self.redis_client:
+            self.redis_client = redis.StrictRedis(
+                host=self.host, port=self.port, db=self.db, decode_responses=True, ssl=self.redis_ssl
+            )
         return self.redis_client
 
     def __exit__(self, exc_type, exc_value, traceback) -> None:
-        self.redis_client.close()
+        if not self.redis_client:
+            self.redis_client.close()
+            self.redis_client = None
+
+    def change_db(self, new_db: int) -> None:
+        self.db = new_db
+        if self.redis_client:
+            self.redis_client.select(new_db)
 
 
 class RedisManager(object):
     def __init__(self, host: str, port: int, db: int, redis_ssl: bool) -> None:
-        self.host = host
-        self.port = int(port)
-        self.db = db
-        self.redis_ssl = redis_ssl
-        self._connection = RedisConnection(host=self.host, port=self.port, db=self.db, redis_ssl=self.redis_ssl)
+        self._connection = RedisConnection(host=host, port=int(port), db=db, redis_ssl=redis_ssl)
 
     def get_connection(self) -> RedisConnection:
-        # if Config.TESTING:
-        #     return fakeredis.FakeStrictRedis(
-        #         server=FakeRedisServer.get_instance(),
-        #         charset="utf-8",
-        #         decode_responses=True,
-        #     )
         return self._connection
+
+    @contextmanager
+    def use_db(self, new_db: int):
+        original_db = self._connection.db
+        try:
+            if new_db != original_db:
+                self._connection.change_db(new_db)
+            yield self._connection
+        finally:
+            self._connection.change_db(original_db)
+
+    def change_db(self, new_db: int):
+        self._connection.change_db(new_db)
 
     def set_connection(self, connection: RedisConnection) -> None:
         self._connection = connection
@@ -124,7 +137,7 @@ class RedisManager(object):
 
     def get_tenant_codes(self, pattern="*", exlcudes_keys=["SETTINGS"]) -> list:
         with self.get_connection() as rc:
-            if self.redis_ssl is False:
+            if self._connection.redis_ssl is False:
                 return [key for key in rc.keys(pattern=pattern) if key not in exlcudes_keys]
             cursor = "0"
             keys = []
@@ -156,41 +169,14 @@ class RedisManager(object):
         config = self.get_load_balancer_config(service_id, tennat)
         return f"{config.get('host')}:{config.get('port')}"
 
+    def get_set(self, key: str):
+        with self.get_connection() as rc:
+            return rc.smembers(key)
 
-class FakeRedisServer:
-    _instance = None
-
-    @classmethod
-    def get_instance(cls) -> fakeredis.FakeServer:
-        if not cls._instance:
-            cls._instance = cls._create_instance()
-        return cls._instance
-
-    @classmethod
-    def _create_instance(cls) -> fakeredis.FakeServer:
-        server = fakeredis.FakeServer()
-        return server
-
-
-class RedisCache(object):
-    def __init__(self, host: str, port: int, db: int, redis_ssl: bool) -> None:
-        self.host = host
-        self.port = int(port)
-        self.db = db
-        self.redis_ssl = redis_ssl
-        self._connection = RedisConnection(host=self.host, port=self.port, db=self.db, redis_ssl=self.redis_ssl)
-
-    def get_connection(self) -> RedisConnection:
-        # if Config.TESTING:
-        #     return fakeredis.FakeStrictRedis(
-        #         server=FakeRedisServer.get_instance(),
-        #         charset="utf-8",
-        #         decode_responses=True,
-        #     )
-        return self._connection
-
-    def set_connection(self, connection: RedisConnection) -> None:
-        self._connection = connection
+    def set_set(self, key: str, *members):
+        with self.get_connection() as rc:
+            rc.delete(key)
+            return rc.sadd(key, *members)
 
     def save_cache(self, hash_key: str, data: dict, expire=True) -> bool:
         """
@@ -236,7 +222,6 @@ class RedisCache(object):
         Returns:
             list: A list of dictionaries where each dictionary contains a key and its associated data.
         """
-
         keys_with_data = []
         with self.get_connection() as rc:
             # Utilizamos SCAN para obtener las keys de forma eficiente
@@ -249,3 +234,43 @@ class RedisCache(object):
                     if data is not None:
                         keys_with_data.append({key: data})
         return keys_with_data
+
+    def get_hashall(self, name: str):
+        with self.get_connection() as rc:
+            return rc.hgetall(name)
+
+    def set_hast(self, name: str, key: str = None, value: str = None, mapping: dict = None, items: list = None):
+        with self.get_connection() as rc:
+            return rc.hset(name, key, value, mapping, items)
+
+    def get_hash(self, name: str, key: str):
+        with self.get_connection() as rc:
+            return rc.hget(name, key)
+
+    def get_multi_hash(self, name: str, keys: list, *args):
+        with self.get_connection() as rc:
+            return rc.hmget(name, keys, *args)
+
+    def delete_hash(self, name: str):
+        with self.get_connection() as rc:
+            return rc.delete(name)
+
+
+class FakeRedisServer:
+    _instance = None
+
+    @classmethod
+    def get_instance(cls) -> fakeredis.FakeServer:
+        if not cls._instance:
+            cls._instance = cls._create_instance()
+        return cls._instance
+
+    @classmethod
+    def _create_instance(cls) -> fakeredis.FakeServer:
+        server = fakeredis.FakeServer()
+        return server
+
+
+# TODO: Remover las importaciones de RedisCache y RedisUsers
+RedisCache = RedisManager
+RedisUsers = RedisManager
