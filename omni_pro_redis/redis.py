@@ -241,6 +241,7 @@ class RedisManager(object):
 
     def set_hast(self, name: str, key: str = None, value: str = None, mapping: dict = None, items: list = None):
         with self.get_connection() as rc:
+            rc.delete(name)
             return rc.hset(name, key, value, mapping, items)
 
     def get_hash(self, name: str, key: str):
