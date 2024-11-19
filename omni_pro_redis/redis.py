@@ -222,17 +222,12 @@ class RedisManager(object):
         Returns:
             list: A list of dictionaries where each dictionary contains a key and its associated data.
         """
-        keys_with_data = []
         with self.get_connection() as rc:
             # Utilizamos SCAN para obtener las keys de forma eficiente
             cursor = "0"
             while cursor != 0:
                 cursor, keys = rc.scan(cursor=cursor, match=f"{prefix}*")
-                for key in keys:
-                    # Obtener los datos asociados a cada key
-                    data = rc.json().get(key)
-                    if data is not None:
-                        keys_with_data.append({key: data})
+                keys_with_data = [{key: rc.json().get(key)} for key in keys if rc.json().get(key) is not None]
         return keys_with_data
 
     def get_hashall(self, name: str):
