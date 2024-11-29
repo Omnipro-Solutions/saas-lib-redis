@@ -225,7 +225,7 @@ class RedisManager(object):
         with self.get_connection() as rc:
             # Utilizamos SCAN para obtener las keys de forma eficiente
             cursor = "0"
-            while cursor != 0:
+            while cursor != "0":
                 cursor, keys = rc.scan(cursor=cursor, match=f"{prefix}*")
                 keys_with_data = [{key: rc.json().get(key)} for key in keys if rc.json().get(key) is not None]
         return keys_with_data
