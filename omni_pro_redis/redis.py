@@ -190,9 +190,13 @@ class RedisManager(object):
             bool: True if the data was successfully saved to the cache, False otherwise.
         """
         with self.get_connection() as rc:
+            ttl_before = rc.ttl(hash_key)
             response = rc.json().set(hash_key, "$", obj=data)
+            ttl_after = rc.ttl(hash_key)
             if expire:
                 rc.expire(hash_key, Config.EXPIRE_CACHE)
+            elif ttl_after < 0:
+                rc.expire(hash_key, ttl_before)
             return response
 
     def get_cache(self, hash_key: str) -> dict:
